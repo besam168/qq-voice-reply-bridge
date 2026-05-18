@@ -1,9 +1,35 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import shutil
 import subprocess
 from pathlib import Path
+
+
+FALLBACK_FFMPEG_CANDIDATES = [
+    Path(r"C:\Users\winsam\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"),
+    Path(r"C:\Users\winsam\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe"),
+]
+
+
+def resolve_ffmpeg() -> str | None:
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path:
+        return ffmpeg_path
+
+    for candidate in FALLBACK_FFMPEG_CANDIDATES:
+        if candidate.exists():
+            return str(candidate)
+
+    for env_path in os.environ.get("PATH", "").split(os.pathsep):
+        if not env_path:
+            continue
+        candidate = Path(env_path) / "ffmpeg.exe"
+        if candidate.exists():
+            return str(candidate)
+
+    return None
 
 
 async def synthesize_to_file(*, text: str, output_path: Path, voice: str, rate: str = "+0%") -> Path:
@@ -24,7 +50,7 @@ async def synthesize_to_file(*, text: str, output_path: Path, voice: str, rate: 
     communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
     await communicator.save(str(temp_mp3_path))
 
-    ffmpeg_path = shutil.which("ffmpeg")
+    ffmpeg_path = resolve_ffmpeg()
     if not ffmpeg_path:
         try:
             temp_mp3_path.unlink(missing_ok=True)
@@ -64,3 +90,4 @@ async def synthesize_to_file(*, text: str, output_path: Path, voice: str, rate: 
 
 def synthesize_sync(*, text: str, output_path: Path, voice: str, rate: str = "+0%") -> Path:
     return asyncio.run(synthesize_to_file(text=text, output_path=output_path, voice=voice, rate=rate))
+

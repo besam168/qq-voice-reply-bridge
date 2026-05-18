@@ -99,6 +99,29 @@ ffmpeg -version
 
 If this command fails, add the folder containing `ffmpeg.exe` to your Windows `PATH`.
 
+### Important Windows pitfall: install success does not always mean current shell can see `ffmpeg`
+
+On some Windows setups, especially right after `winget install Gyan.FFmpeg`, the installation succeeds but the **current PowerShell process still does not inherit the refreshed PATH yet**.
+
+Typical symptom:
+
+- `ffmpeg` is installed on disk
+- but this repository still reports:
+  - `ffmpeg not found in PATH`
+
+Practical advice:
+
+1. first try opening a **new PowerShell window**
+2. rerun:
+
+   ```powershell
+   ffmpeg -version
+   ```
+
+3. then rerun the speech command
+
+This repository also includes a small Windows-friendly fallback lookup in `scripts/providers/tts_edge.py` for common local `ffmpeg.exe` locations, to reduce false failures immediately after install.
+
 ## 7. Python 依赖安装
 
 ```powershell
@@ -178,8 +201,29 @@ Important notes:
 - The `file` value should be an absolute local path accessible to the QQBot process.
 - Keep the generated WAV reasonably small.
 - Confirm your QQBot/OpenClaw runtime supports sending local media files with `<qqmedia>`.
+- In OpenClaw-based QQBot setups, the most reliable practice is to place the generated audio under a trusted media root such as:
+  - `~/.openclaw/media/qqbot/`
+  - or one of its subdirectories
+- Do **not** assume that keeping the file only inside a normal workspace directory is enough; some platform/media safety policies may reject local uploads outside trusted media roots.
 
-## 12. 常见故障排查
+## 12. 推荐验收标准
+
+Do not treat “script returned ok=true” as the final proof by itself.
+
+A stronger real-world acceptance checklist is:
+
+1. WAV generation succeeded
+2. audio format is verified as:
+   - mono
+   - `16000 Hz`
+   - `16-bit PCM`
+3. the file is stored in a QQBot/OpenClaw-accessible trusted path
+4. the file is actually sent back to QQ
+5. a real user can tap it and hear it successfully in QQ
+
+That final playback-in-QQ confirmation is the real end-to-end success signal.
+
+## 13. 常见故障排查
 
 ### 1. `edge-tts is not installed`
 
@@ -226,12 +270,38 @@ Try a short ASCII-only output path, for example `C:\qq-voice-reply-bridge`.
 - Check file size and QQBot media limits.
 - Confirm your QQBot implementation supports `<qqmedia file="..." />` for local WAV files.
 - Make sure the file still exists when QQBot sends it.
+- If you are using OpenClaw/QQBot, prefer storing the WAV under a trusted media directory such as `~/.openclaw/media/qqbot/`.
 
-## 13. License
+### 6. ffmpeg 刚装完还是报 PATH 找不到
+
+This is a real Windows pitfall.
+
+Possible cause:
+- `ffmpeg` was installed successfully
+- but the current shell has not picked up the new PATH yet
+
+Try, in order:
+
+1. open a new PowerShell window
+2. run:
+
+   ```powershell
+   ffmpeg -version
+   ```
+
+3. rerun:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\speak-local.ps1 -Text "你好，老板。" -NoPlay
+   ```
+
+If needed, point PATH manually to the folder containing `ffmpeg.exe`.
+
+## 14. License
 
 MIT License. See [LICENSE](LICENSE).
 
-## Required local acceptance tests
+## 15. Required local acceptance tests
 
 Pure generation:
 

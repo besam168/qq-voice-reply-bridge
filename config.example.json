@@ -1,0 +1,15 @@
+{
+  "tts": {
+    "provider": "edge",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "+0%",
+    "output_dir": "./output",
+    "output_ext": "wav",
+    "max_text_length": 4000
+  },
+  "playback": {
+    "enabled": true,
+    "player_script": "./scripts/play-local-audio.ps1",
+    "timeout_seconds": 20
+  }
+}
